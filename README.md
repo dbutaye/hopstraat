@@ -1,4 +1,4 @@
 hopstraat
 =========
 
-experiments with github
+experiments with github and leaflet.js
