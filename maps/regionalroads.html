@@ -1,0 +1,237 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<title>Regional Roads</title>
+	<meta charset="utf-8" />
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<script src="../js/jquery-1.10.2.min.js"></script>
+	<link rel="stylesheet" href="leaflet.css" />
+	<!--[if lte IE 8]><link rel="stylesheet" href="leaflet.ie.css" /><![endif]-->
+	<link rel="stylesheet" href="css/leaflet-search.css" />
+	
+
+	<style>
+		html, body, #map {
+			margin: 0px;
+			height: 100%;
+			width: 100%;
+		}
+		.info {
+			padding: 6px 8px;
+			font: 14px/16px Arial, Helvetica, sans-serif;
+			background: white;
+			background: rgba(255,255,255,1);
+			box-shadow: 0 0 15px rgba(0,0,0,0.2);
+			border-radius: 5px;
+			text-align: right;
+		}
+		.info h4, .info h3 {
+			margin: 0 0 5px;
+			color: #777;
+			text-align: right;
+		}
+
+		.legend {
+			text-align: left;
+			line-height: 18px;
+			color: #555;
+		}
+		.legend i {
+			width: 18px;
+			height: 18px;
+			float: left;
+			margin-right: 8px;
+			opacity: 1;
+		}
+		.info {width:250px;height:60px;}
+		.leaflet-control-layers, .legend {width:150px;height:auto;}
+		.leaflet-control-attribution a:first-child {display:none;}
+	</style>
+</head>
+<body>
+	<div id="map"></div>
+
+	<script src="leaflet.js"></script>
+	<script src="js/leaflet-search.js"></script>
+	
+	<script>
+	
+		lang = $('html').attr('lang');
+	
+		function getaddress(text, callResponse) {
+    		var address = text;
+    		var sr = "4326";
+
+    		$.ajax({
+        		dataType:'jsonp',
+        		url: 'http://service.gis.irisnet.be/urbis/Rest/Localize/getaddresses',
+        		data: {
+            		language:lang,
+            		address:address,
+            		spatialReference:sr
+        		},
+        		success: callResponse
+    		});
+		}
+
+        map = L.map('map').setView([50.84331852979277, 4.357895514064874], 12);
+        var streetmap = L.tileLayer.wms("http://geoserver.gis.irisnet.be/urbis/wms/gwc", {
+            layers: 'urbisFR',
+            format: 'image/png',
+            transparent: true,
+			crs: L.CRS.EPSG4326,
+			maxZoom: 19
+        }).addTo(map);
+		
+		var ortho2012 = L.tileLayer.wms("http://geoserver.gis.irisnet.be/geoserver/urbis/wms", {
+			layers: 'urbis:ortho2012'
+		});
+
+		var communes = L.tileLayer.wms("http://geoserver.gis.irisnet.be/urbis/wms/gwc", {
+            layers: 'urbis:URB_A_MU',
+            format: 'image/png',
+			//styles: 'MRBC_ADM_MU',
+            transparent: true
+        }).addTo(map);
+/*		
+		var regionalroads = L.tileLayer.wms("http://geoserver.gis.irisnet.be/urbis/wms", {
+            layers: 'urbis:URB_A_SS',
+            format: 'image/png',
+			//styles: 'URB_A_SS_FIXMYSTREET',
+            transparent: true,
+			opacity: 0.8,
+			filter: '<ogc:Filter xmlns:ogc="http://www.opengis.net/ogc">' +
+						'<ogc:PropertyIsEqualTo matchCase="true">' +
+							'<ogc:PropertyName>ADMINISTRATOR</ogc:PropertyName>' +
+							'<ogc:Literal>REG</ogc:Literal>' +
+						'</ogc:PropertyIsEqualTo>' +
+					'</ogc:Filter>'
+        }).addTo(map);
+*/		
+		var regionalroads = L.tileLayer.wms("http://data-mobility.irisnet.be/geoserver/bm_network/ows", {
+            layers: 'bm_network:Regional_roads',
+            format: 'image/png',
+			//styles: 'URB_A_SS_FIXMYSTREET',
+            transparent: true,
+			opacity: 0.8,
+			attribution: 'Regional Roads &copy; <a href="http://mobilite.brussels" target="_blank">Bruxelles Mobilit&eacute;</a>'
+        }).addTo(map);
+
+		map.attributionControl.addAttribution('Realized by means of Brussels UrbIS &copy; &reg; - <a href="http://cirb.brussels/fr/nos-solutions/urbis-solutions/" target="_blank">CIRB-CIBG</a>');		
+/*
+		//WFS LAYER
+		var regroads = new L.GeoJSON([], {
+			//style: style,
+			//onEachFeature: onEachFeature
+		});
+		
+		function handleJson(data) {
+		  regroads.addData(data); 
+		}
+
+		$.ajax({
+		  url : "http://geoserver.gis.irisnet.be/geoserver/urbis/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=urbis:URB_A_SS&srsName=EPSG:4326&maxFeatures=10000&outputFormat=json&cql_filter=(ADMINISTRATOR=%27REG%27)&format_options=callback:getJson",
+		  dataType : 'jsonp',
+		  jsonpCallback: 'getJson',
+		  success: handleJson
+		});
+
+		map.addLayer(regroads);
+		
+*/
+
+	    function getaddressesfromcoord(x, y, lang)
+	    {
+            var urlService = 'http://service.gis.irisnet.be/urbis/';
+            var coordinate = {
+                "language": lang,
+                "point": {
+                    "x": x,
+                    "y": y
+                },
+                "spatialReference": '4326'
+            }
+
+            $.ajax({
+                dataType:'jsonp',
+                url: urlService+'Rest/Localize/getaddressfromxy',
+                data: {
+                    json : JSON.stringify(coordinate)
+                },
+                success:function(response) {
+                    var address = '';
+                    result = response.result;
+                    address += result.address.street.name + ' ' + result.address.number;
+                    address += '<br>';
+                    address += result.address.street.postCode + ' Bruxelles';
+
+                    var content = '<p><strong>' + address + '</strong></p>' + '<p><a href="https://irisbox.irisnetlab.be/eforms?orbeonApplicationName=IBGE-BIM&orbeonFormName=IBGE-BIM_InfoBruitRoutier&form-version=1&action=new" target="_blank">Remplir le formulaire dans IRISbox</a> <img src="images/new-window.png" /></p><p><a href="http://www.infobruit.irisnetlab.be/fr/transports-et-voie-publique/voitures" target="_blank">T&eacute;l&eacute;charger le formulaire au format PDF</a> <img src="images/new-window.png" /></p>';
+                    popup.setContent(content);
+                }
+            });
+        }
+
+		//LEGEND
+		var legend = L.control({position: 'topright'});
+
+		legend.onAdd = function (map) {
+			this._div = L.DomUtil.create('div', 'info legend');
+			this.update();
+			return this._div;
+		};
+
+		legend.update = function (props) {
+			this._div.innerHTML = '<h3>BRUIT ROUTIER</h3><p>D&eacute;placer vous sur la carte en utilisant les niveaux de zoom et cliquez &agrave; l\'endroit  o&ugrave; se trouve <strong>la source du bruit</strong> pour identifier le gestionnaire de la voirie.</p>';
+		};
+
+		legend.addTo(map);
+		
+		
+		//LATLNG 
+		var popup = L.popup();
+
+		function onMapClick(e) {
+            var address = getaddressesfromcoord(e.latlng.lng, e.latlng.lat, lang);
+
+            popup
+                .setLatLng(e.latlng)
+                .setContent('<img src=images/loader.gif alt="loading..." />')
+                .openOn(map);
+		}
+
+		map.on('click', onMapClick);
+		
+		
+		// LAYERS
+		var baseMaps = {
+			"Bruxelles": streetmap,
+			"Vue a&eacute;rienne": ortho2012
+		};	
+
+		var overlayMaps = {
+			"Voiries r&eacute;gionales": regionalroads,
+			"Communes": communes
+		};
+
+		L.control.layers(baseMaps, overlayMaps,{collapsed:false}).addTo(map);
+		
+		
+		//SEARCH BUTTON
+		var textSearch = ('Recherche d\'adresse ...');
+        searchcontrol = new L.Control.Search({
+            callData: getaddress,
+            minLength: 3,
+            text: textSearch,
+            zoom: 17,
+            markerLocation: false,
+            propertyName: "address",
+        });
+        searchcontrol.addTo(map);
+
+
+	</script>
+	
+</body>
+</html>
