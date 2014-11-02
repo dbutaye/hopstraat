@@ -1,4 +1,5 @@
-hopstraat
+Changelog
 =========
 
-:information_source: experiments with github and leaflet.js
+##0.1 (2014-11-01)
+initial setup
